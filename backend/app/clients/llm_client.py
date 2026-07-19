@@ -8,6 +8,8 @@ async def summarize_cve(cve_data: dict) -> dict:
     system_prompt = """You are a cybersecurity analyst assistant.
 You will be given raw CVE data. Respond ONLY with valid JSON, no markdown, no preamble, no explanation.
 Base your answer STRICTLY on the provided data — never invent a CVE ID, score, or fact not present in the input.
+If a field in the input data is null or missing (e.g. severity is null), output "UNKNOWN" for that field 
+rather than inferring or calculating it yourself, even if you know how it could be derived.
 
 Output format:
 {
