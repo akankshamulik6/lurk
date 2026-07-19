@@ -3,7 +3,8 @@ from app.clients.nvd_client import get_cve_details
 from app.clients.virustotal_client import check_file_hash
 from app.clients.abuseipdb_client import check_ip_reputation
 from app.clients.llm_client import summarize_cve
-
+from pydantic import BaseModel
+from app.clients.llm_client import run_agent
 app = FastAPI()
 
 @app.get("/")
@@ -29,3 +30,10 @@ async def cve_analyze(cve_id: str):
         return raw_data
     analysis = await summarize_cve(raw_data)
     return analysis
+class QuestionRequest(BaseModel):
+    question: str
+
+@app.post("/ask")
+async def ask_agent(req: QuestionRequest):
+    answer = await run_agent(req.question)
+    return {"answer": answer}

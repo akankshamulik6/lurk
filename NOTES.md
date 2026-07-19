@@ -88,3 +88,44 @@ Flow: Frontend (React) → FastAPI backend → LLM layer (Claude)
   before route integration — caught no major issues, all worked first try
 - Next: Phase 2 — connect Claude API, build the LLM reasoning layer that 
   takes this raw JSON and returns structured, grounded summaries
+  ## Edge Case Testing (Phase 2 hardening)
+
+### Test 1: CVE-1999-0001 (very old CVE, pre-CVSSv3)
+- Raw NVD data: score=5.0, severity=None (old CVEs often lack a severity label)
+- LLM output: severity="Medium"
+- Finding: LLM correctly inferred "Medium" from the 5.0 score using standard CVSS 
+  conventions, but stated it as fact even though the raw data had no severity field.
+  Not a hallucinated fact, but a case of the model filling a gap with its own 
+  background knowledge rather than only the provided data. 
+- Action: could tighten system prompt to say "if severity is null in input, 
+  output 'UNKNOWN' rather than inferring it" — flagged as a v1.1 improvement.
+
+### Test 2: CVE-9999-99999 (malformed/nonexistent CVE ID)
+- Result: handled cleanly — {"error": "No data found for CVE-9999-99999"}
+- No crash, no hallucinated CVE data. NVD wrapper's error check worked as designed.
+
+### Test 3: CVE-2021-44228 (Log4Shell, long complex description)
+- Result: correct CVSS 10.0, correctly identified as "known exploited" (accurate — 
+  Log4Shell was actively exploited in the wild), correct fix versions mentioned
+- No issues — model handled long/complex descriptions well
+
+### Fix applied (same session)
+- Updated system prompt to explicitly instruct: if a field in input data is null/missing, 
+  output "UNKNOWN" rather than inferring it, even if derivable from other fields
+- Re-tested CVE-1999-0001: severity changed from "Medium" (inferred) to "UNKNOWN" (correct), 
+  mitigation also correctly changed to "UNKNOWN" (previously may have been quietly filled in)
+- Confirms prompt-level constraints meaningfully change hallucination behavior — 
+  worth re-testing other CVEs periodically as the prompt evolves
+  ## Phase 3: Agent/Orchestration Testing
+
+- Question: "Tell me about CVE-2024-3094" → correctly routed to get_cve_details tool, 
+  accurate CVSS/date/description in response
+- Question: "Is 118.25.6.39 a known malicious IP?" → correctly routed to 
+  check_ip_reputation tool, accurate abuse score and org info in response
+- Agent correctly distinguishes CVE questions from IP questions without any 
+  hardcoded routing — LLM reads the question and picks the right tool via 
+  Groq's function-calling (OpenAI-compatible format)
+- Note: correlation between CVE + IOC in the same conversation is handled 
+  naturally by the LLM's final text answer, not a dedicated correlation engine — 
+  this is "LLM-assisted correlation" for v1, not a graph-based system (documenting 
+  scope honestly for README)
