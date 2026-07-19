@@ -10,6 +10,15 @@ from app.clients.llm_client import summarize_cve
 from pydantic import BaseModel
 from app.clients.llm_client import run_agent
 app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 scheduler = AsyncIOScheduler()
 
 @app.on_event("startup")
