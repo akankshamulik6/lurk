@@ -3,6 +3,7 @@ import api from './api'
 import CveCard from './components/CveCard'
 import DailyReport from './components/DailyReport'
 import LookupCard from './components/LookupCard'
+import AskAgent from './components/AskAgent'
 
 function App() {
   const [cveId, setCveId] = useState('')
@@ -75,7 +76,7 @@ function App() {
       <h1 className="text-2xl tracking-widest mb-8">LURK</h1>
 
       <DailyReport report={report} />
-
+      <AskAgent />
       {/* CVE Lookup */}
       <div className="flex gap-2 mb-2 max-w-2xl">
         <input
