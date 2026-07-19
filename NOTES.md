@@ -129,3 +129,14 @@ Flow: Frontend (React) → FastAPI backend → LLM layer (Claude)
   naturally by the LLM's final text answer, not a dedicated correlation engine — 
   this is "LLM-assisted correlation" for v1, not a graph-based system (documenting 
   scope honestly for README)
+  ## Phase 4: Daily Threat Reports (Automation)
+
+- Added ThreatReport DB model (SQLite) + get_recent_cves() date-range NVD query
+- generate_daily_report(): fetches last 24h CVEs, filters top 5 by CVSS score, 
+  summarizes via Groq, saves to DB
+- Scheduled via APScheduler to run daily at 6 AM (cron job)
+- Tested standalone first (caught a bug: test script needs to call init_db() 
+  before generate_daily_report(), since table creation normally happens on 
+  FastAPI startup) — confirmed working end-to-end via /reports/latest endpoint
+- Real test run pulled live CVEs (e.g. Shibby Tomato buffer overflow, SurrealDB 
+  privilege issues) and correctly summarized only the ones actually in the data
