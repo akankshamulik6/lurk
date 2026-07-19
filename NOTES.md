@@ -41,3 +41,43 @@ Flow: Frontend (React) → FastAPI backend → LLM layer (Claude)
 - Got API keys for NVD, VirusTotal, AbuseIPDB, Shodan
 - Set up .env with keys, confirmed .gitignore protecting it
 - Next: sketch architecture diagram, then start Phase 1 (FastAPI skeleton + get_cve_details wrapper)
+
+## API Notes
+
+### NVD API
+- Endpoint: GET https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={CVE_ID}
+- Auth: apiKey header
+- Sample test: CVE-2024-3094 (xz-utils backdoor) → returned full CVE data,
+  CVSS 3.1 score 10.0 CRITICAL, description, references, affected packages
+- Key fields I'll actually use: id, descriptions[0].value, metrics.cvssMetricV31[0].cvssData.baseScore,
+  metrics.cvssMetricV31[0].cvssData.baseSeverity, references (for mitigation links)
+- Rate limit: 50 requests/30 sec with API key (5 without)
+- Notes: response is huge (lots of reference URLs) — I'll need to trim this down 
+  before sending to the LLM, only pass the relevant fields
+
+  ### VirusTotal API
+- Endpoint: GET https://www.virustotal.com/api/v3/files/{hash}
+- Auth: x-apikey header
+- Sample test: EICAR test file hash (44d88612fea8a8f36de82e1278abb02f) → returned full 
+  analysis: 65/68 engines flagged malicious, reputation score, sandbox verdicts, 
+  file type, tags, first/last seen dates
+- Key fields I'll actually use: data.attributes.last_analysis_stats (malicious/harmless counts),
+  data.attributes.popular_threat_classification.suggested_threat_label,
+  data.attributes.reputation, data.attributes.last_analysis_date
+- Rate limit: 4 requests/min, 500/day, 15.5K/month (free tier)
+- Notes: response is MASSIVE (all 70+ AV engine results) — definitely need to filter 
+  down to just last_analysis_stats + threat label before passing to LLM, don't dump 
+  raw response into the prompt
+  
+  ### Shodan API
+- Endpoint: GET https://api.shodan.io/shodan/host/{ip}?key={key}
+- Auth: key as query param
+- Sample test: 8.8.8.8 (Google DNS) → returned org, ISP, open ports, hostnames, 
+  geolocation, and per-port banner/service data
+- Key fields I'll actually use: ip_str, org, ports, hostnames, data[].port, 
+  data[].product (service name), country_name
+- Rate limit: 1 request/sec, 100 query credits/month (free tier — quite limited 
+  compared to the others)
+- Notes: lowest free-tier quota of all four APIs — since this is "future work" 
+  not v1, don't worry about optimizing calls yet, but keep in mind for later 
+  that Shodan will need aggressive caching once it's actually integrated
