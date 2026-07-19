@@ -1,12 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from './api'
 import CveCard from './components/CveCard'
+import DailyReport from './components/DailyReport'
 
 function App() {
   const [cveId, setCveId] = useState('')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [report, setReport] = useState(null)
+
+  useEffect(() => {
+    api.get('/reports/latest')
+      .then(res => setReport(res.data))
+      .catch(() => setReport(null))
+  }, [])
 
   const handleSearch = async () => {
     if (!cveId.trim()) return
@@ -35,6 +43,8 @@ function App() {
   return (
     <div className="min-h-screen bg-void text-line p-8">
       <h1 className="text-2xl tracking-widest mb-8">LURK</h1>
+
+      <DailyReport report={report} />
 
       <div className="flex gap-2 mb-8 max-w-2xl">
         <input
