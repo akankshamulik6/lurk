@@ -81,3 +81,10 @@ Flow: Frontend (React) → FastAPI backend → LLM layer (Claude)
 - Notes: lowest free-tier quota of all four APIs — since this is "future work" 
   not v1, don't worry about optimizing calls yet, but keep in mind for later 
   that Shodan will need aggressive caching once it's actually integrated
+### 19-07-2026 (cont.)
+- Phase 1 complete: FastAPI backend live with 3 working endpoints
+  (/cve/{id}, /hash/{hash}, /ip/{ip})
+- All three API wrappers (NVD, VirusTotal, AbuseIPDB) tested standalone 
+  before route integration — caught no major issues, all worked first try
+- Next: Phase 2 — connect Claude API, build the LLM reasoning layer that 
+  takes this raw JSON and returns structured, grounded summaries
